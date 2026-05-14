@@ -1,6 +1,4 @@
 'use client';
-
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { FadeUp, StaggerContainer, StaggerItem } from '@/components/Motion';
 import { projects, featuredProjects } from '@/data/projects';
@@ -23,7 +21,7 @@ export const ProjectsSection = () => {
         {/* Featured Projects Grid */}
         <StaggerContainer delay={0.1}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-            {featuredProjects.map((project, index) => (
+            {featuredProjects.map((project) => (
               <StaggerItem key={project.id}>
                 <motion.div
                   className="card-glass overflow-hidden group h-full flex flex-col"
