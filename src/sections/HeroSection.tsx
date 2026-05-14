@@ -121,15 +121,15 @@ export const HeroSection = () => {
                   <span className="text-accent-primary">[</span>
                 </div>
                 <div className="ml-4">
-                  <span className="text-accent-primary">'React'</span>,{' '}
-                  <span className="text-accent-primary">'Next.js'</span>,
+                  <span className="text-accent-primary">&apos;React&apos;</span>,{' '}
+                  <span className="text-accent-primary">&apos;Next.js&apos;</span>,
                 </div>
                 <div className="ml-4">
-                  <span className="text-accent-primary">'TypeScript'</span>,{' '}
-                  <span className="text-accent-primary">'AI/ML'</span>,
+                  <span className="text-accent-primary">&apos;TypeScript&apos;</span>,{' '}
+                  <span className="text-accent-primary">&apos;AI/ML&apos;</span>,
                 </div>
                 <div className="ml-4">
-                  <span className="text-accent-primary">'DevOps'</span>
+                  <span className="text-accent-primary">&apos;DevOps&apos;</span>
                 </div>
                 <div>
                   <span className="text-accent-primary">]</span>;

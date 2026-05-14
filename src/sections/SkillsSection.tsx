@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { FadeUp, StaggerContainer, StaggerItem } from '@/components/Motion';
 import { skills } from '@/data/skills';
 
