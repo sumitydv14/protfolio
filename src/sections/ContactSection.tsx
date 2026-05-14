@@ -14,10 +14,10 @@ export const ContactSection = () => {
           transition={{ duration: 0.6 }}
           className="max-w-2xl mx-auto text-center"
         >
-          <h2 className="section-title mb-6">Let's Work Together</h2>
+          <h2 className="section-title mb-6">Let&apos;s Work Together</h2>
           <p className="text-xl text-text-secondary mb-12 leading-relaxed">
-            I'm always interested in hearing about new projects and opportunities.
-            Feel free to reach out if you'd like to collaborate or just say hello!
+            I&apos;m always interested in hearing about new projects and opportunities.
+            Feel free to reach out if you&apos;d like to collaborate or just say hello!
           </p>
 
           <motion.div
