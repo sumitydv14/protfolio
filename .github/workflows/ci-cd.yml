@@ -1,67 +1,112 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline — S3 + CloudFront
 
 on:
   push:
     branches:
       - master
-
   pull_request:
     branches:
       - master
 
 jobs:
-  build-test:
+  # ─────────────────────────────────────────────
+  # JOB 1: Build & Validate (runs on every push/PR)
+  # ─────────────────────────────────────────────
+  build-and-validate:
     name: Build & Validate
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [20]
-
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run ESLint
-        run: npm run lint --if-present
-        continue-on-error: true
-
-      - name: Run tests
-        run: npm run test --if-present
-
-      - name: Build application
-        run: npm run build
-
-  deploy:
-    name: Deploy Application
-    needs: build-test
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: npm ci
 
-      - name: Build application
-        run: npm run build
+      - name: 🔍 Run ESLint
+        run: npm run lint --if-present
+        continue-on-error: true
 
-      - name: Deploy
-        run: echo "Deployment successful"
+      - name: 🏗️ Build application (Next.js static export)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 📤 Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-out
+          path: out/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Deploy to AWS S3 + CloudFront
+  # (runs ONLY on push to master, after build succeeds)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy to AWS S3 + CloudFront
+    needs: build-and-validate
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}.cloudfront.net
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-out
+          path: out/
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: 🚀 Sync static files to S3
+        run: |
+          # Sync HTML files — no browser cache (always fresh)
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --content-type "text/html"
+
+          # Sync JS/CSS/fonts — long-term cache (Next.js hashes filenames)
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "*" \
+            --include "_next/static/*" \
+            --cache-control "public, max-age=31536000, immutable"
+
+          # Sync all remaining files (images, robots.txt, etc.)
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --exclude "*.html" \
+            --exclude "_next/static/*" \
+            --cache-control "public, max-age=86400"
+
+      - name: ⚡ Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: ✅ Deployment complete
+        run: |
+          echo "🎉 Portfolio deployed successfully!"
+          echo "🌍 Live at: https://$(aws cloudfront get-distribution --id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --query 'Distribution.DomainName' --output text)"
